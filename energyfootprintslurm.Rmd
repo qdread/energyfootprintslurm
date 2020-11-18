@@ -9,6 +9,8 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Source code for this pdf is available at <https://github.com/qdread/energyfootprintslurm>.
+
 ## How much time was saved from code optimization?
 
 The unoptimized code took 2756 seconds (roughly `r round(2756/60)` minutes) to run 100 iterations across 8 cores (processors). Assuming that each processor was used for the entire time, that's `r 2756*8` processor-seconds, which comes out to `r 2756*8/100` seconds per iteration. In minutes:
@@ -43,6 +45,12 @@ paste(signif(opt_seconds_per_iter, 3), 'seconds')
 ```
 
 So the amount of time saved is about `r signif(unopt_seconds_per_iter * 10000/3600 - (1066/3600 + opt_seconds_per_iter * 10000/3600), 3)` hours!
+
+```{r}
+# Point estimate: time saved
+unopt_seconds_per_iter * 10000/3600 - (1066/3600 + opt_seconds_per_iter * 10000/3600)
+```
+
 
 ## GHG intensity of electricity generation in Maryland
 
@@ -90,8 +98,10 @@ md_generation <- annual_generation_state %>%
 Since we don't know the mix of sources used to power Park Place versus UMD, we will have to just stick with the total. We can ignore the SO2 and NOx columns. We have tonnes per MWh, which is equivalent to kg per kWh.
 
 ```{r}
-total_emissions <- with(md_emission, co2_metric_tons[energy_source %in% 'All Sources'])
-total_generation <- with(md_generation, generation_megawatthours[energy_source %in% 'Total'])
+total_emissions <- with(md_emission, 
+                        co2_metric_tons[energy_source %in% 'All Sources'])
+total_generation <- with(md_generation, 
+                         generation_megawatthours[energy_source %in% 'Total'])
 
 total_emissions / total_generation
 ```
@@ -115,6 +125,12 @@ opt_time <- 1066 + opt_seconds_per_iter * 10000
 opt_energy <- opt_time/3600 * c(15, 32.5, 50)/1000 # in kWh
 opt_co2 <- opt_energy * total_emissions / total_generation
 
+# Estimate for kg CO2 from unoptimized code
+unopt_co2
+
+# Estimate for kg CO2 from optimized code
+opt_co2
+
 # Point estimate for kg CO2 saved.
 unopt_co2[2] - opt_co2[2]
 ```
@@ -137,4 +153,22 @@ Using the weighted average across devices, with the CO2 saved from optimization,
 
 You'd only be able to produce `r signif((unopt_co2[2] - opt_co2[2])/4, 2)` Big Macs with that amount of CO2, though, which is probably a bad thing for several reasons.
 
-## Data sources
+```{r}
+# Point estimate for km driven
+units::set_units((unopt_co2[2] - opt_co2[2])/0.404, 'mi') %>% units::set_units('km')
+
+# Point estimate for hours streaming
+(unopt_co2[2] - opt_co2[2])/0.07
+
+# Point estimate for number of Big macs
+(unopt_co2[2] - opt_co2[2])/4
+```
+
+
+## Data sources for processor energy use
+
+Basmadjian, R. & de Meer, H. (2012). Evaluating and modeling power consumption of multi-core processors. In: Proceedings of the 3rd International Conference on Future Energy Systems Where Energy, Computing and Communication Meet - e-Energy ’12. Presented at the the 3rd International Conference, ACM Press, Madrid, Spain, pp. 1–10.
+
+Jarus, M., Oleksiak, A., Piontek, T. & Węglarz, J. (2014). Runtime power usage estimation of HPC servers for various classes of real-life applications. Future Generation Computer Systems, Special Section: Intelligent Big Data Processing, 36, 299–310.
+
+Mantovani, F. & Calore, E. (2018). Performance and Power Analysis of HPC Workloads on Heterogenous Multi-Node Clusters. JLPEA, 8, 13.
